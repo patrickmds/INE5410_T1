@@ -80,31 +80,39 @@ int main(int argc, char** argv) {
     check_missing(garcons, "garcons");
     check_missing(balcao, "balcao");
 
-    printf("chegou auqi1\n");
     Cozinha *cozinha = cozinha_init(cozinheiros, bocas_total, frigideiras,
                  garcons, balcao);
 
-    printf("chegou auqi2\n");
-    pthread_t cozinheiros_t[cozinheiros];
+    Params parametros[cozinheiros];
+
+    pthread_t threads[cozinheiros];
+
 
     char* buf = (char*)malloc(4096);
-    printf("chegou auqi2.5\n");
     int next_id = 1;
     int ret = 0;
     while((ret = scanf("%4095s", buf)) > 0) {
-        printf("chegou auqi3\n");
         pedido_t p = {next_id++, pedido_prato_from_name(buf)};
         if (!p.prato){
-            printf("chegou auqi4\n");
             fprintf(stderr, "Pedido inválido descartado: \"%s\"\n", buf);
         } else {
-            printf("chegou auqi5\n");
-            processar_pedido(p, cozinha);
+            sem_wait(&(cozinha->sem_cozinheiros));
+            int id = pegar_cozinheiro_livre(cozinha);
+            printf("Pegou cozinheiro de id %d\n", id);
+            parametros[id].pedido = p;
+            parametros[id].cozinha = cozinha;
+            parametros[id].id_coz = id;
+            pthread_create(&threads[id], NULL, processar_pedido, &parametros[id]);
+            //processar_pedido(p, cozinha);
         }
     }
     printf("chegou auqi6\n");
     if (ret != EOF) {
         perror("Erro lendo pedidos de stdin:");
+    }
+
+    for (int i = 0; i < cozinheiros; i++) {
+        pthread_join(threads[i], NULL);
     }
 
     printf("chegou auqi7\n");

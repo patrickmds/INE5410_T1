@@ -1,10 +1,5 @@
 #include "cozinha.h"
 
-#define CARNE 1
-#define SPAGHETTI 2
-#define SOPA 3
-
-
 extern Cozinha* cozinha_init(int num_cozinheiros, int bocas, int frigideiras,
                              int garcons, int tam_balcao)
 {
@@ -33,6 +28,7 @@ extern Cozinha* cozinha_init(int num_cozinheiros, int bocas, int frigideiras,
 
 extern void cozinha_destroy(Cozinha *cozinha)
 {
+    free(cozinha->cozinheiros);
     sem_destroy(&(cozinha->sem_cozinheiros));
     sem_destroy(&(cozinha->sem_bocas));
     sem_destroy(&(cozinha->sem_frigideiras));
@@ -42,29 +38,39 @@ extern void cozinha_destroy(Cozinha *cozinha)
 }
 
 
-extern void processar_pedido(pedido_t p, Cozinha *cozinha)
+extern void* processar_pedido(void* arg)//pedido_t p, Cozinha *cozinha)
 {
-	pedido_prato_t pedido_prato = p.prato;  // nome do prato
+    Params param = *(Params *)arg;
 
-    unsigned int tipo = p.id;
+    pedido_t p = param.pedido;
+    Cozinha *cozinha = param.cozinha;
+    int id_coz = param.id_coz;
+
+    unsigned int tipo = p.prato;
     prato_t* prato = create_prato(p);
 
-    printf(" tipo %d\n", tipo);
+   // printf("aaa %d\n", prato->pedido.prato);
+   // printf(" prato %d\n", p.prato);
+   // printf(" tipo %d\n", tipo);
 
-    if (tipo == CARNE) {
+    if (tipo == CARNE_C) {
         printf("PREPARANDO CARNE!\n");
         carne_t* carne = create_carne();
         cortar_carne(carne);
         temperar_carne(carne);
 
         sem_wait(&(cozinha->sem_frigideiras));
+        sem_wait(&(cozinha->sem_bocas));
           grelhar_carne(carne);
+        sem_post(&(cozinha->sem_bocas));
         sem_post(&(cozinha->sem_frigideiras));
 
         empratar_carne(carne, prato);
         notificar_prato_no_balcao(prato);
 
         sem_wait(&(cozinha->sem_tam_balcao));
+        cozinha->cozinheiros[id_coz].estado = LIVRE;
+        sem_post(&(cozinha->sem_cozinheiros));
           printf("Prato no balcão\n");
         sem_wait(&(cozinha->sem_garcons));
         sem_post(&(cozinha->sem_tam_balcao));
@@ -73,26 +79,35 @@ extern void processar_pedido(pedido_t p, Cozinha *cozinha)
           printf("Prato entregue\n");
         sem_post(&(cozinha->sem_garcons));
 
-    } else if (tipo == SPAGHETTI) {
+    } else if (tipo == SPAGHETTI_C) {
         printf("PREPARANDO SPAGHETTI!\n");
 
-        molho_t* molho_preparado;
-        spaghetti_t* spaghetti_preparado;
-        bacon_t* bacon_preparado;
+        void* molho_preparado;
+        void* spaghetti_preparado;
+        void* bacon_preparado;
 
         pthread_t threads[3];
-        pthread_create(&threads[0], NULL, preparar_spaghetti, &cozinha);
-        pthread_create(&threads[1], NULL, preparar_molho, &cozinha);
-        pthread_create(&threads[2], NULL, preparar_bacon, &cozinha);
+        pthread_create(&threads[0], NULL, preparar_spaghetti, (void *)cozinha);
+        pthread_create(&threads[1], NULL, preparar_molho, (void *)cozinha);
+        pthread_create(&threads[2], NULL, preparar_bacon, (void *)cozinha);
 
-        pthread_join(threads[0], (void *)spaghetti_preparado);
-        pthread_join(threads[1], (void *)molho_preparado);
-        pthread_join(threads[2], (void *)bacon_preparado);
+        cozinha->cozinheiros[id_coz].estado = ESPERANDO;
+        pthread_join(threads[0], &spaghetti_preparado);
+        pthread_join(threads[1], &molho_preparado);
+        pthread_join(threads[2], &bacon_preparado);
 
-        empratar_spaghetti((spaghetti_t *)spaghetti_preparado, (molho_t *)molho_preparado, (bacon_t *)bacon_preparado, prato);
+        molho_preparado = (molho_t *)molho_preparado;
+        spaghetti_preparado = (spaghetti_t *)spaghetti_preparado;
+        bacon_preparado = (bacon_t *)bacon_preparado;
+
+
+        cozinha->cozinheiros[id_coz].estado = OCUPADO;
+        empratar_spaghetti(spaghetti_preparado, molho_preparado, bacon_preparado, prato);
         notificar_prato_no_balcao(prato);
 
         sem_wait(&(cozinha->sem_tam_balcao));
+        cozinha->cozinheiros[id_coz].estado = LIVRE;
+        sem_post(&(cozinha->sem_cozinheiros));
           printf("Prato no balcão\n");
         sem_wait(&(cozinha->sem_garcons));
         sem_post(&(cozinha->sem_tam_balcao));
@@ -101,23 +116,29 @@ extern void processar_pedido(pedido_t p, Cozinha *cozinha)
           printf("Prato entregue\n");
         sem_post(&(cozinha->sem_garcons));
 
-    } else if (tipo == SOPA) {
+    } else if (tipo == SOPA_C) {
         printf("PREPARANDO SOPA!\n");
         legumes_t* legumes = create_legumes();
-        caldo_t* caldo_pronto;
+        void* caldo_pronto;
         pthread_t thread;
-        pthread_create(&thread, NULL, fazer_caldo, &cozinha);
+        pthread_create(&thread, NULL, fazer_caldo, (void *)cozinha);
 
         cortar_legumes(legumes);
+        cozinha->cozinheiros[id_coz].estado = ESPERANDO;
+        pthread_join(thread, &caldo_pronto);
 
-        pthread_join(thread, (void *)caldo_pronto);
-        cozinhar_legumes(legumes, (caldo_t *)caldo_pronto);
+        caldo_pronto = (caldo_t *)caldo_pronto;
+
+        cozinha->cozinheiros[id_coz].estado = OCUPADO;
+        cozinhar_legumes(legumes, caldo_pronto);
         sem_post(&(cozinha->sem_bocas));
 
-        empratar_sopa(legumes, (caldo_t *)caldo_pronto, prato);
+        empratar_sopa(legumes, caldo_pronto, prato);
 
         notificar_prato_no_balcao(prato);
         sem_wait(&(cozinha->sem_tam_balcao));
+        cozinha->cozinheiros[id_coz].estado = LIVRE;
+        sem_post(&(cozinha->sem_cozinheiros));
           printf("Prato no balcão\n");
         sem_wait(&(cozinha->sem_garcons));
         sem_post(&(cozinha->sem_tam_balcao));
@@ -129,7 +150,8 @@ extern void processar_pedido(pedido_t p, Cozinha *cozinha)
         printf("Prato não está no menu\n");
     }
 
-    return;
+    pthread_exit(NULL);
+
 }
 
 void* preparar_molho(void* arg)
@@ -142,12 +164,13 @@ void* preparar_molho(void* arg)
       esquentar_molho(molho);
     sem_post(&(cozinha->sem_bocas));
 
-    pthread_exit(&molho);
+    return (void *)molho;
 }
 
 void* preparar_spaghetti(void* arg)
 {
     Cozinha *cozinha = (Cozinha *)arg;
+    printf("coz %d", cozinha->num_cozinheiros);
     spaghetti_t* spaghetti = create_spaghetti();
     agua_t* agua = create_agua();
 
@@ -156,7 +179,7 @@ void* preparar_spaghetti(void* arg)
       cozinhar_spaghetti(spaghetti, agua);
     sem_post(&(cozinha->sem_bocas));
 
-    pthread_exit(&spaghetti);
+    return (void*)spaghetti;
 }
 
 void* preparar_bacon(void* arg)
@@ -167,10 +190,10 @@ void* preparar_bacon(void* arg)
     sem_wait(&(cozinha->sem_frigideiras));
     sem_wait(&(cozinha->sem_bocas));
       dourar_bacon(bacon);
-    sem_wait(&(cozinha->sem_bocas));
-    sem_wait(&(cozinha->sem_frigideiras));
+    sem_post(&(cozinha->sem_bocas));
+    sem_post(&(cozinha->sem_frigideiras));
 
-    pthread_exit(&bacon);
+    return (void*)bacon;
 }
 
 void* fazer_caldo(void* arg)
@@ -180,5 +203,20 @@ void* fazer_caldo(void* arg)
     sem_wait(&(cozinha->sem_bocas));
       ferver_agua(agua);
       caldo_t* caldo = preparar_caldo(agua);
-    pthread_exit(&caldo);
+    return (void *)caldo;
+}
+
+int pegar_cozinheiro_livre(Cozinha *cozinha)
+{
+    int i = 0;
+    while (1) {
+        if (cozinha->cozinheiros[i].estado == LIVRE) {
+            cozinha->cozinheiros[i].estado = OCUPADO;
+            return i;
+        }
+        i++;
+        if (i > cozinha->num_cozinheiros) {
+            i=0;
+        }
+    }
 }
