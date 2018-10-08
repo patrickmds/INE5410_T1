@@ -39,37 +39,37 @@ Você deve garantir que após o retorno da função main:<br/>
 
 
 Funções principais:<br/>
-notificar_prato_no_balcao(prato_t* prato): deve ser invocada para cada pedido imediatamente antes de um prato com o pedido ser colocado no balcão.<br/>
-entregar_pedido(prato_t* prato): deve ser chamada quando um garçom entrega o prato correspondente a um pedido.<br/>
-A cozinha deve operar com a melhor eficiência possível. Como as receitas possuem tarefas que não exigem a atenção do cozinheiro, é importante que ele inicie essas tarefas o mais cedo possível.<br/>
-Dica: para descobrir a estratégia ideal de início de tarefas, construa um diagrama para cada receita, representando as dependências entre as tarefas.<br/>
+- notificar_prato_no_balcao(prato_t* prato): deve ser invocada para cada pedido imediatamente antes de um prato com o pedido ser colocado no balcão.<br/>
+- entregar_pedido(prato_t* prato): deve ser chamada quando um garçom entrega o prato correspondente a um pedido.<br/>
+- A cozinha deve operar com a melhor eficiência possível. Como as receitas possuem tarefas que não exigem a atenção do cozinheiro, é importante que ele inicie essas tarefas o mais cedo possível.<br/>
+
 
 Receitas<br/>
 
 [DE] -- Dedicação exclusiva<br/>
 [Xmin] -- tarefa dura X minutos -- simulação do tempo já pronta em tarefas.{h,c}<br/>
 
-Carne:<br/>
- Cortar a carne [5min] [DE]<br/>
- Temperar a carne [3min] [DE]<br/>
- Grelhar a carne em uma frigideira [3min] [DE]<br/>
- Empratar o pedido [1min] [DE]<br/>
+- Carne:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Cortar a carne [5min] [DE]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Temperar a carne [3min] [DE]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Grelhar a carne em uma frigideira [3min] [DE]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Empratar o pedido [1min] [DE]<br/>
 
 
-Spaghetti:<br/>
-Esquentar o molho [5min]<br/>
-Ferver água [3min]<br/>
-Cozinhar o Spaghetti (na água fervente) [5min]<br/>
-Dourar o bacon em uma frigideira [2min]<br/>
-Empratar o pedido [3min] [DE]<br/>
+- Spaghetti:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Esquentar o molho [5min]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Ferver água [3min]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Cozinhar o Spaghetti (na água fervente) [5min]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Dourar o bacon em uma frigideira [2min]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Empratar o pedido [3min] [DE]<br/>
 
 
-Sopa:<br/>
- Cortar legumes [10min] [DE]<br/>
- Ferver a água [3min]<br/>
- Fazer o caldo (com a água fervente, precisa de boca de fogão) [2min]<br/>
- Cozinhar os legumes no caldo [8min]<br/>
- Empratar o pedido [1min] [DE]<br/>
+- Sopa:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Cortar legumes [10min] [DE]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Ferver a água [3min]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Fazer o caldo (com a água fervente, precisa de boca de fogão) [2min]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Cozinhar os legumes no caldo [8min]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Empratar o pedido [1min] [DE]<br/>
 
 
 
